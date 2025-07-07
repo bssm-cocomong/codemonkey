@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { useTypingStore } from "../stores/typingStore";
 import type { TypingMode, ProgrammingLanguage } from "../types/index";
@@ -110,7 +110,7 @@ const InputArea = styled.textarea`
     font-family: "Galmuri11", monospace;
     resize: none;
     outline: none;
-    max-height: 45vh;
+    max-height: 60vh;
 
     &:focus {
         border-color: #3a7fa7;
@@ -165,84 +165,84 @@ const CompletionCard = styled.div`
 `;
 
 const CelebrationTitle = styled.h2`
-font-size: 36px;
-margin-bottom: 10px;
-color: #fff;
+    font-size: 36px;
+    margin-bottom: 10px;
+    color: #fff;
 `;
 
 const CelebrationSubtitle = styled.p`
-font-size: 16px;
-margin-bottom: 30px;
-opacity: 0.9;
+    font-size: 16px;
+    margin-bottom: 30px;
+    opacity: 0.9;
 `;
 
 const StatsGrid = styled.div`
-display: grid;
-grid-template-columns: repeat(2, 1fr);
-gap: 20px;
-width: 100%;
-max-width: 400px;
-margin: 0 auto 30px auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 30px auto;
 `;
 
 const StatCard = styled.div`
-background: rgba(255, 255, 255, 0.1);
-border-radius: 8px;
-padding: 20px;
-text-align: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
 `;
 
 const StatValue = styled.div`
-font-size: 24px;
-font-weight: bold;
-margin-bottom: 5px;
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 5px;
 `;
 
 const StatLabel = styled.div`
-font-size: 14px;
-opacity: 0.8;
+    font-size: 14px;
+    opacity: 0.8;
 `;
 
 const MotivationMessage = styled.p`
-font-size: 16px;
-margin-bottom: 30px;
-padding: 15px;
-background: rgba(255, 255, 255, 0.1);
-border-radius: 8px;
-font-style: italic;
+    font-size: 16px;
+    margin-bottom: 30px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-style: italic;
 `;
 
 const ActionButtons = styled.div`
-display: flex;
-gap: 15px;
-flex-wrap: wrap;
-justify-content: center;
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
 `;
 
 const ActionButton = styled.button<{ variant?: "primary" | "secondary" }>`
-padding: 12px 24px;
-border: none;
-border-radius: 6px;
-font-size: 14px;
-cursor: pointer;
-transition: all 0.2s ease;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
-${(props) =>
-props.variant === "primary"
-? `
-background: #fff;
-color: #3A7FA7;
-font-weight: bold;
-`
-: `
-background: rgba(255, 255, 255, 0.2);
-color: white;
-border: 1px solid rgba(255, 255, 255, 0.3);
-`}
+    ${(props) =>
+        props.variant === "primary"
+            ? `
+        background: #fff;
+        color: #3A7FA7;
+        font-weight: bold;
+    `
+            : `
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    `}
 
-&:hover {
-transform: translateY(-2px);
-}
+    &:hover {
+        transform: translateY(-2px);
+    }
 `;
 
 const StatsContainer = styled.div`
@@ -276,14 +276,17 @@ const TypingPage = () => {
 
     const handleModeChange = (mode: TypingMode) => {
         setSelectedMode(mode);
-        setCategory(mode);
         resetSession(); // 모드 변경 시 세션 리셋
+        const text = sampleTexts[mode]?.[selectedLanguage] || "Sample text";
+        startSession(mode, selectedLanguage, text);
     };
 
     const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const language = e.target.value as ProgrammingLanguage;
         setSelectedLanguage(language);
         resetSession(); // 언어 변경 시 세션 리셋
+        const text = sampleTexts[selectedMode]?.[language] || "Sample text";
+        startSession(selectedMode, language, text);
     };
 
     const randomTokenByType = (tokens: any[] | undefined, type: string) => {
@@ -350,20 +353,11 @@ const TypingPage = () => {
             startSession(selectedMode, selectedLanguage, full);
         }
     }, [formats, selectedLanguage, selectedMode, selectedLanguage, category])
-
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
-        if (newValue.length <= currentSession!.text.length) {
+        if (currentSession && newValue.length <= currentSession.text.length) {
             updateUserInput(newValue);
         }
-    };
-
-    const handleKeyDown = (_e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        // 필요시 키보드 제한 로직 추가
-        // 예: 백스페이스 제한
-        // if (_e.key === 'Backspace') {
-        //     _e.preventDefault();
-        // }
     };
 
     // 실시간 피드백을 위한 코드 렌더링 함수
@@ -374,10 +368,6 @@ const TypingPage = () => {
         const chars = text.split("");
 
         return chars.map((char, index) => {
-            if (char === '\n') {
-                return <br key={index} />;
-            }
-
             let status: "correct" | "incorrect" | "current" | "remaining";
 
             if (index < userInput.length) {
@@ -442,11 +432,11 @@ const TypingPage = () => {
     };
 
     // 자동 시작
-    // if (!currentSession) {
-    //     const text =
-    //         formats?.[0]?.format_str;
-    //     startSession(selectedMode, selectedLanguage, text);
-    // }
+    if (!currentSession) {
+        const text =
+            sampleTexts[selectedMode]?.[selectedLanguage] || "Sample text";
+        startSession(selectedMode, selectedLanguage, text);
+    }
 
     return (
         <Container>
@@ -499,9 +489,9 @@ const TypingPage = () => {
                     value={selectedLanguage}
                     onChange={handleLanguageChange}
                 >
-                    <option value="Python">Python</option>
-                    <option value="C">C</option>
-                    <option value="Java">Java</option>
+                    <option value="python">python</option>
+                    <option value="c">c</option>
+                    <option value="java">java</option>
                 </LanguageSelector>
             </OptionsContainer>
 
@@ -521,7 +511,6 @@ const TypingPage = () => {
                         <InputArea
                             value={currentSession.userInput}
                             onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
                             placeholder="여기에 입력하세요..."
                             autoFocus
                         />
