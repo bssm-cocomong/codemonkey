@@ -4,7 +4,6 @@ import { useTypingStore } from "../stores/typingStore";
 import type { TypingMode, ProgrammingLanguage } from "../types/index";
 import { useAllCodeFormats, useCodeFormats } from '../hooks/useCodeFormats'
 import { useCodeTokens } from '../hooks/useCodeTokens'
-import { supabase } from "../utils/supabase";
 
 const Container = styled.div`
     padding: 20px 102px;
@@ -267,9 +266,9 @@ const TypingPage = () => {
     const [text, setText] = useState<string>("Sample text");
     const [category, setCategory] = useState<string>("method");
 
-    const { data: formats, isLoading: loadingFormats } = useCodeFormats(selectedLanguage, category)
-    const { data: allFormats, isLoading: loadingAllFormats } = useAllCodeFormats(selectedLanguage)
-    const { data: tokens, isLoading: loadingTokens } = useCodeTokens(selectedLanguage)
+    const { data: formats } = useCodeFormats(selectedLanguage, category)
+    const { data: allFormats } = useAllCodeFormats(selectedLanguage)
+    const { data: tokens } = useCodeTokens(selectedLanguage)
 
     // if (loadingFormats || loadingTokens) {
     //     return <div>Loading...</div>;
@@ -303,7 +302,7 @@ const TypingPage = () => {
     useEffect(() => {
         if (category == "all") {
             if (allFormats && allFormats.length > 0 && selectedLanguage) {
-
+                
                 let full = "";
                 for (let i = 0; i < 20; i++) {
                     const randomIndex = Math.floor(Math.random() * allFormats.length)
@@ -325,6 +324,7 @@ const TypingPage = () => {
                     full = full + result + "\n";
                 }
                 setText(full);
+                console.log(text);
                 startSession(selectedMode, selectedLanguage, full);
             }
         }
@@ -387,7 +387,7 @@ const TypingPage = () => {
     };
 
     // 격려 메시지 생성 함수
-    const getMotivationMessage = (_wpm: number, accuracy: number) => {
+    const getMotivationMessage = (accuracy: number) => {
         if (accuracy === 100) {
             return "완벽해요! 🎉 오타 없이 완주하셨네요!";
         } else if (accuracy >= 95) {
@@ -550,7 +550,6 @@ const TypingPage = () => {
 
                         <MotivationMessage>
                             {getMotivationMessage(
-                                currentSession.wpm,
                                 currentSession.accuracy
                             )}
                         </MotivationMessage>
