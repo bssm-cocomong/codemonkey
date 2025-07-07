@@ -2,6 +2,9 @@ import { useState } from "react";
 import styled from "styled-components";
 import { useTypingStore } from "../stores/typingStore";
 import type { TypingMode, ProgrammingLanguage } from "../types/index";
+import { useAllCodeFormats, useCodeFormats } from '../hooks/useCodeFormats'
+import { useCodeTokens } from '../hooks/useCodeTokens'
+import { supabase } from "../utils/supabase";
 
 const Container = styled.div`
     padding: 20px 102px;
@@ -260,45 +263,17 @@ const TypingPage = () => {
         useTypingStore();
     const [selectedMode, setSelectedMode] = useState<TypingMode>("line");
     const [selectedLanguage, setSelectedLanguage] =
-        useState<ProgrammingLanguage>("python");
+        useState<ProgrammingLanguage>("Python");
+    const [text, setText] = useState<string>("Sample text");
+    const [category, setCategory] = useState<string>("method");
 
-    const sampleTexts = {
-        keyword: {
-            python: "def if else for while try except import from class return",
-            c: "int main void printf scanf if else for while switch case",
-            java: "public static void main String int boolean if else for while",
-        },
-        line: {
-            python: `print('Hello, World!')
+    const { data: formats, isLoading: loadingFormats } = useCodeFormats(selectedLanguage, category)
+    const { data: allFormats, isLoading: loadingAllFormats } = useAllCodeFormats(selectedLanguage)
+    const { data: tokens, isLoading: loadingTokens } = useCodeTokens(selectedLanguage)
 
-li = [1, 2, 3, 4]
-
-for item in li:
-    print(item)`,
-            c: 'printf("Hello, World!");',
-            java: 'System.out.println("Hello, World!");',
-        },
-        variable: {
-            python: "x = 10\ny = 20\nresult = x + y",
-            c: "int x = 10;\nint y = 20;\nint result = x + y;",
-            java: "int x = 10;\nint y = 20;\nint result = x + y;",
-        },
-        function: {
-            python: "def add(a, b):\n    return a + b",
-            c: "int add(int a, int b) {\n    return a + b;\n}",
-            java: "public int add(int a, int b) {\n    return a + b;\n}",
-        },
-        method: {
-            python: "class Calculator:\n    def add(self, a, b):\n        return a + b",
-            c: "struct Calculator {\n    int (*add)(int, int);\n};",
-            java: "public class Calculator {\n    public int add(int a, int b) {\n        return a + b;\n    }\n}",
-        },
-        all: {
-            python: "def calculate_sum(numbers):\n    total = 0\n    for num in numbers:\n        total += num\n    return total",
-            c: "int calculate_sum(int numbers[], int size) {\n    int total = 0;\n    for(int i = 0; i < size; i++) {\n        total += numbers[i];\n    }\n    return total;\n}",
-            java: "public int calculateSum(int[] numbers) {\n    int total = 0;\n    for(int num : numbers) {\n        total += num;\n    }\n    return total;\n}",
-        },
-    };
+    // if (loadingFormats || loadingTokens) {
+    //     return <div>Loading...</div>;
+    // }
 
     const handleModeChange = (mode: TypingMode) => {
         setSelectedMode(mode);
@@ -315,6 +290,69 @@ for item in li:
         startSession(selectedMode, language, text);
     };
 
+    const randomTokenByType = (tokens: any[] | undefined, type: string) => {
+        if (!tokens) return 0
+
+        const filtered = tokens.filter(token => token.type === type);
+        if (filtered.length === 0) return null;
+
+        const randomIndex = Math.floor(Math.random() * filtered.length);
+        return filtered[randomIndex];
+    };
+
+    useEffect(() => {
+        if (category == "all") {
+            if (allFormats && allFormats.length > 0 && selectedLanguage) {
+
+                let full = "";
+                for (let i = 0; i < 20; i++) {
+                    const randomIndex = Math.floor(Math.random() * allFormats.length)
+                    const randomItem = allFormats[randomIndex]
+                    
+                    const type = randomTokenByType(tokens, 'type');
+                    const method = randomTokenByType(tokens, 'method');
+                    const value = randomTokenByType(tokens, 'value');
+                    const varname = randomTokenByType(tokens, 'varname');
+
+                    const text = randomItem.format_str
+                    const replacements = {
+                        "<type>": type.value,
+                        "<method>": method.value,
+                        "<value>": value.value,
+                        "<varname>": varname.value,
+                    };
+                    const result = text.replace(/<[^>]+>/g, (match: string) => (replacements as any)[match] || match);
+                    full = full + result + "\n";
+                }
+                setText(full);
+                startSession(selectedMode, selectedLanguage, full);
+            }
+        }
+        else if (formats && formats.length > 0 && selectedLanguage) {
+            let full = "";
+            for (let i = 0; i < 20; i++) {
+                const randomIndex = Math.floor(Math.random() * formats.length)
+                const randomItem = formats[randomIndex]
+
+                const type = randomTokenByType(tokens, 'type');
+                const method = randomTokenByType(tokens, 'method');
+                const value = randomTokenByType(tokens, 'value');
+                const varname = randomTokenByType(tokens, 'varname');
+
+                const text = randomItem.format_str
+                const replacements = {
+                    "<type>": type.value,
+                    "<method>": method.value,
+                    "<value>": value.value,
+                    "<varname>": varname.value,
+                };
+                const result = text.replace(/<[^>]+>/g, (match: string) => (replacements as any)[match] || match);
+                full = full + result + "\n";
+            }
+            setText(full);
+            startSession(selectedMode, selectedLanguage, full);
+        }
+    }, [formats, selectedLanguage, selectedMode, selectedLanguage, category])
     const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
         if (currentSession && newValue.length <= currentSession.text.length) {
