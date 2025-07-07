@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useTypingStore } from "../stores/typingStore";
 import type { TypingMode, ProgrammingLanguage } from "../types/index";
-import { useCodeFormats } from '../hooks/useCodeFormats'
+import { useAllCodeFormats, useCodeFormats } from '../hooks/useCodeFormats'
 import { useCodeTokens } from '../hooks/useCodeTokens'
 import { supabase } from "../utils/supabase";
 
@@ -268,6 +268,7 @@ const TypingPage = () => {
     const [category, setCategory] = useState<string>("method");
 
     const { data: formats, isLoading: loadingFormats } = useCodeFormats(selectedLanguage, category)
+    const { data: allFormats, isLoading: loadingAllFormats } = useAllCodeFormats(selectedLanguage)
     const { data: tokens, isLoading: loadingTokens } = useCodeTokens(selectedLanguage)
 
     // if (loadingFormats || loadingTokens) {
@@ -297,26 +298,56 @@ const TypingPage = () => {
     };
 
     useEffect(() => {
-        if (formats && formats.length > 0 && selectedLanguage) {
-            const randomIndex = Math.floor(Math.random() * formats.length)
-            const randomItem = formats[randomIndex]
+        if (category == "all") {
+            if (allFormats && allFormats.length > 0 && selectedLanguage) {
 
-            const type = randomTokenByType(tokens, 'type');
-            const method = randomTokenByType(tokens, 'method');
-            const value = randomTokenByType(tokens, 'value');
-            const varname = randomTokenByType(tokens, 'varname');
-    
-            const text = randomItem.format_str
-            const replacements = {
-                "<type>": type.value,
-                "<method>": method.value,
-                "<value>": value.value,
-                "<varname>": varname.value,
-            };
-            const result = text.replace(/<[^>]+>/g, (match: string) => (replacements as any)[match] || match);
-            console.log(result);
-            setText(result);
-            startSession(selectedMode, selectedLanguage, result);
+                let full = "";
+                for (let i = 0; i < 20; i++) {
+                    const randomIndex = Math.floor(Math.random() * allFormats.length)
+                    const randomItem = allFormats[randomIndex]
+                    
+                    const type = randomTokenByType(tokens, 'type');
+                    const method = randomTokenByType(tokens, 'method');
+                    const value = randomTokenByType(tokens, 'value');
+                    const varname = randomTokenByType(tokens, 'varname');
+
+                    const text = randomItem.format_str
+                    const replacements = {
+                        "<type>": type.value,
+                        "<method>": method.value,
+                        "<value>": value.value,
+                        "<varname>": varname.value,
+                    };
+                    const result = text.replace(/<[^>]+>/g, (match: string) => (replacements as any)[match] || match);
+                    full = full + result + "\n";
+                }
+                setText(full);
+                startSession(selectedMode, selectedLanguage, full);
+            }
+        }
+        else if (formats && formats.length > 0 && selectedLanguage) {
+            let full = "";
+            for (let i = 0; i < 20; i++) {
+                const randomIndex = Math.floor(Math.random() * formats.length)
+                const randomItem = formats[randomIndex]
+
+                const type = randomTokenByType(tokens, 'type');
+                const method = randomTokenByType(tokens, 'method');
+                const value = randomTokenByType(tokens, 'value');
+                const varname = randomTokenByType(tokens, 'varname');
+
+                const text = randomItem.format_str
+                const replacements = {
+                    "<type>": type.value,
+                    "<method>": method.value,
+                    "<value>": value.value,
+                    "<varname>": varname.value,
+                };
+                const result = text.replace(/<[^>]+>/g, (match: string) => (replacements as any)[match] || match);
+                full = full + result + "\n";
+            }
+            setText(full);
+            startSession(selectedMode, selectedLanguage, full);
         }
     }, [formats, selectedLanguage, selectedMode, selectedLanguage, category])
 
