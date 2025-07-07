@@ -15,7 +15,7 @@ export interface TypingSession {
 
 export type TypingMode = 'keyword' | 'line' | 'variable' | 'function' | 'method' | 'all';
 
-export type ProgrammingLanguage = 'c' | 'python' | 'java';
+export type ProgrammingLanguage = 'C' | 'Python' | 'Java';
 
 export interface UserStats {
   totalSessions: number;
